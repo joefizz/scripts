@@ -11,8 +11,8 @@ if ARGV.length != 2
 end
 
 Timestamp = Time.now.utc.iso8601
-Token=[ARGV[0]]
-Droplet_name=[ARGV[1]]
+Token=ARGV[0]
+Droplet_name=ARGV[1]
 Client = DropletKit::Client.new(access_token: Token)
 
 # Get the ID, size and location of the droplet we are doing this on
@@ -62,8 +62,6 @@ def delete_droplet(id)
   until res == True
     sleep(2)
   end
-  puts " *   Action status: #{res}"
-rescue NameError
   puts res
 end
 
@@ -99,14 +97,18 @@ def get_IP()
     droplets = Client.droplets.all
     droplets.each do |droplet|
         if droplet.name == Droplet_name
-            puts "  - Droplet id: #{droplet.id}"
-            @droplet_id = droplet.id
+            puts "  - Droplet ID: #{droplet.id}"
+            droplet.networks.each do |network|
+                network.each do |net|
+                    if net["type"] == 'public'
+                        puts "  - Droplet IP: #{net["ip_address"]}"
+                    end
+                end
+            end
         end
     end
-    res = Client.floating_ips.find(droplet: @droplet_id)
-    puts "  - Droplet IP: #{res.ip}"
 rescue NameError
-    puts JSON.parse(res)['message']
+    puts "Something went wrong in get_IP()"
 end
 
 puts "Getting droplet id..."
@@ -125,7 +127,8 @@ deploy_droplet()
 sleep(2)
 puts "Deleting snapshot..."
 delete_snapshot()
-sleep(2)
+puts "Waiting 30s for new droplet to deploy..."
+sleep(30)
 puts "Getting details of new droplet..."
 get_IP()
 puts " Complete"
